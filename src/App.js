@@ -33,12 +33,7 @@ function App() {
 
   const [planetToggles, setPlanetToggles] = useState({});
   const [activePlanet, setActivePlanet] = useState(null);
-  const [imgSize, setImgSize] = useState({
-    width: originalWidth,
-    height: originalHeight,
-    left: 0,
-    top: 0,
-  });
+  const [imgSize, setImgSize] = useState({ width: originalWidth, height: originalHeight });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState("");
@@ -54,31 +49,28 @@ function App() {
     });
   }, []);
 
-  // Resize handling (get bounding box of image)
+  // Resize handling
   useEffect(() => {
     const updateSize = () => {
       if (imgRef.current) {
-        const rect = imgRef.current.getBoundingClientRect();
         setImgSize({
-          width: rect.width,
-          height: rect.height,
-          left: rect.left,
-          top: rect.top,
+          width: imgRef.current.offsetWidth,
+          height: imgRef.current.offsetHeight,
         });
       }
     };
-    updateSize();
     window.addEventListener("resize", updateSize);
+    updateSize();
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
   const handleToggle = (planetId, index) => {
-    if (!isLoggedIn) return; // 🚫 block non-logged users
+    if (!isLoggedIn) return;
     const oldToggles = planetToggles[planetId] ? [...planetToggles[planetId]] : Array(6).fill(false);
     oldToggles[index] = !oldToggles[index];
     const updated = { ...planetToggles, [planetId]: oldToggles };
     setPlanetToggles(updated);
-    set(ref(db, "planetToggles"), updated); // ✅ Save to Firebase
+    set(ref(db, "planetToggles"), updated);
   };
 
   const handleLogin = () => {
@@ -103,7 +95,7 @@ function App() {
         alignItems: "center",
       }}
     >
-      {/* White Login Button */}
+      {/* Login Button */}
       <button
         onClick={() => setShowLogin(true)}
         style={{
@@ -160,20 +152,26 @@ function App() {
         </div>
       )}
 
-      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      {/* Image container */}
+      <div style={{ position: "relative", display: "inline-block" }}>
         <img
           ref={imgRef}
           src={background}
           alt="Space Map"
           style={{
-            maxHeight: "100%",
-            maxWidth: "100%",
-            objectFit: "contain",
             display: "block",
-            margin: "auto",
+            maxWidth: "100%",
+            height: "auto",
+          }}
+          onLoad={() => {
+            setImgSize({
+              width: imgRef.current.offsetWidth,
+              height: imgRef.current.offsetHeight,
+            });
           }}
         />
 
+        {/* Planets */}
         {planets.map((planet) => {
           const toggles = planetToggles[planet.id] || Array(6).fill(false);
           const activeCount = toggles.filter(Boolean).length;
@@ -181,13 +179,13 @@ function App() {
           const scaleX = imgSize.width / originalWidth;
           const scaleY = imgSize.height / originalHeight;
 
-          const px = imgSize.left + planet.x * scaleX;
-          const py = imgSize.top + planet.y * scaleY;
+          const px = planet.x * scaleX;
+          const py = planet.y * scaleY;
           const ps = planet.size * ((scaleX + scaleY) / 2);
 
           return (
-            <div key={planet.id}>
-              {/* Invisible hitbox */}
+            <div key={planet.id} style={{ position: "absolute", top: 0, left: 0 }}>
+              {/* Hitbox */}
               <div
                 style={{
                   position: "absolute",
@@ -195,17 +193,15 @@ function App() {
                   left: `${px}px`,
                   width: `${ps}px`,
                   height: `${ps}px`,
-                  cursor: "pointer",
                   borderRadius: "50%",
                   transform: "translate(-50%, -50%)",
+                  cursor: "pointer",
                   zIndex: 1,
                 }}
-                onClick={() =>
-                  setActivePlanet(activePlanet === planet.id ? null : planet.id)
-                }
+                onClick={() => setActivePlanet(activePlanet === planet.id ? null : planet.id)}
               />
 
-              {/* ✅ Green segmented ring */}
+              {/* Segmented Ring */}
               <div
                 style={{
                   position: "absolute",
@@ -225,7 +221,7 @@ function App() {
                 }}
               />
 
-              {/* Toggle menu */}
+              {/* Toggle Menu */}
               {activePlanet === planet.id && (
                 <div
                   style={{
@@ -259,11 +255,7 @@ function App() {
                         checked={toggles[i] || false}
                         disabled={!isLoggedIn}
                         onChange={() => handleToggle(planet.id, i)}
-                        style={{
-                          width: "16px",
-                          height: "16px",
-                          accentColor: "limegreen",
-                        }}
+                        style={{ width: "16px", height: "16px", accentColor: "limegreen" }}
                       />
                       Pluton {i + 1}
                     </label>
