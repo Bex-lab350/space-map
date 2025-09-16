@@ -33,7 +33,12 @@ function App() {
 
   const [planetToggles, setPlanetToggles] = useState({});
   const [activePlanet, setActivePlanet] = useState(null);
-  const [imgSize, setImgSize] = useState({ width: originalWidth, height: originalHeight });
+  const [imgSize, setImgSize] = useState({
+    width: originalWidth,
+    height: originalHeight,
+    left: 0,
+    top: 0,
+  });
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [password, setPassword] = useState("");
@@ -49,19 +54,22 @@ function App() {
     });
   }, []);
 
-  // Resize handling
+  // Resize handling (get bounding box of image)
   useEffect(() => {
-    if (imgRef.current) {
-      const updateSize = () => {
+    const updateSize = () => {
+      if (imgRef.current) {
+        const rect = imgRef.current.getBoundingClientRect();
         setImgSize({
-          width: imgRef.current.clientWidth,
-          height: imgRef.current.clientHeight,
+          width: rect.width,
+          height: rect.height,
+          left: rect.left,
+          top: rect.top,
         });
-      };
-      updateSize();
-      window.addEventListener("resize", updateSize);
-      return () => window.removeEventListener("resize", updateSize);
-    }
+      }
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
   }, []);
 
   const handleToggle = (planetId, index) => {
@@ -152,16 +160,17 @@ function App() {
         </div>
       )}
 
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
         <img
           ref={imgRef}
           src={background}
           alt="Space Map"
           style={{
-            height: "100vh",
-            width: "auto",
+            maxHeight: "100%",
+            maxWidth: "100%",
             objectFit: "contain",
             display: "block",
+            margin: "auto",
           }}
         />
 
@@ -172,8 +181,8 @@ function App() {
           const scaleX = imgSize.width / originalWidth;
           const scaleY = imgSize.height / originalHeight;
 
-          const px = planet.x * scaleX;
-          const py = planet.y * scaleY;
+          const px = imgSize.left + planet.x * scaleX;
+          const py = imgSize.top + planet.y * scaleY;
           const ps = planet.size * ((scaleX + scaleY) / 2);
 
           return (
